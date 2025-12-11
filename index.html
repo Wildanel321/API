@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Website API - Cuaca Real-time</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2980, #26d0ce);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 500px;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+        
+        .search-box {
+            display: flex;
+            margin-bottom: 30px;
+        }
+        
+        #cityInput {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px 0 0 10px;
+            font-size: 16px;
+            outline: none;
+            transition: border 0.3s;
+        }
+        
+        #cityInput:focus {
+            border-color: #3498db;
+        }
+        
+        #searchBtn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 0 25px;
+            border-radius: 0 10px 10px 0;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        
+        #searchBtn:hover {
+            background: #2980b9;
+        }
+        
+        .weather-card {
+            background: linear-gradient(to right, #3498db, #2c3e50);
+            color: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .city-name {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .temp {
+            font-size: 48px;
+            font-weight: 700;
+            margin: 10px 0;
+        }
+        
+        .weather-desc {
+            font-size: 18px;
+            margin-bottom: 20px;
+            text-transform: capitalize;
+        }
+        
+        .weather-icon {
+            font-size: 60px;
+            margin: 15px 0;
+        }
+        
+        .details {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .detail-item {
+            margin: 10px;
+        }
+        
+        .detail-value {
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .detail-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .loading {
+            display: none;
+            margin: 20px 0;
+        }
+        
+        .error {
+            background-color: #e74c3c;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .api-info {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #555;
+        }
+        
+        .example-cities {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .example-city {
+            background-color: #ecf0f1;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .example-city:hover {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        footer {
+            margin-top: 20px;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><i class="fas fa-cloud-sun"></i> Website API Cuaca</h1>
+        <p>Cari informasi cuaca kota di seluruh dunia</p>
+        
+        <div class="search-box">
+            <input type="text" id="cityInput" placeholder="Masukkan nama kota (contoh: Jakarta, London, Tokyo)">
+            <button id="searchBtn"><i class="fas fa-search"></i> Cari</button>
+        </div>
+        
+        <div class="example-cities">
+            <button class="example-city" data-city="Jakarta">Jakarta</button>
+            <button class="example-city" data-city="Surabaya">Surabaya</button>
+            <button class="example-city" data-city="Bali">Bali</button>
+            <button class="example-city" data-city="Singapore">Singapore</button>
+            <button class="example-city" data-city="Tokyo">Tokyo</button>
+        </div>
+        
+        <div class="loading" id="loading">
+            <i class="fas fa-spinner fa-spin fa-2x"></i>
+            <p>Memuat data dari API...</p>
+        </div>
+        
+        <div class="error" id="error">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span id="errorText">Kota tidak ditemukan. Coba nama kota lain.</span>
+        </div>
+        
+        <div class="weather-card" id="weatherCard">
+            <div class="city-name" id="cityName">Jakarta, ID</div>
+            <div class="weather-icon" id="weatherIcon"><i class="fas fa-sun"></i></div>
+            <div class="temp" id="temperature">30°C</div>
+            <div class="weather-desc" id="weatherDesc">Cerah</div>
+            
+            <div class="details">
+                <div class="detail-item">
+                    <div class="detail-value" id="humidity">65%</div>
+                    <div class="detail-label">Kelembaban</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-value" id="windSpeed">12 km/h</div>
+                    <div class="detail-label">Angin</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-value" id="feelsLike">32°C</div>
+                    <div class="detail-label">Terasa seperti</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-value" id="pressure">1013 hPa</div>
+                    <div class="detail-label">Tekanan</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="api-info">
+            <p><strong>Website ini menggunakan API eksternal:</strong></p>
+            <p>Data cuaca diambil dari OpenWeatherMap API secara real-time</p>
+            <p><small>API Key gratis terbatas 60 request per menit</small></p>
+        </div>
+        
+        <footer>
+            <p>Website API Demo • Data dari OpenWeatherMap</p>
+        </footer>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_KEY = '42b4119e2b4b58d840e8ee55e1e058d4'; // API Key OpenWeatherMap (gratis)
+        const BASE_URL = 'https://api.openweathermap.org/data/2.5/weather';
+        
+        // DOM Elements
+        const cityInput = document.getElementById('cityInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const weatherCard = document.getElementById('weatherCard');
+        const loading = document.getElementById('loading');
+        const errorDiv = document.getElementById('error');
+        const exampleCities = document.querySelectorAll('.example-city');
+        
+        // Weather icon mapping
+        const iconMap = {
+            '01': 'fas fa-sun', // clear sky
+            '02': 'fas fa-cloud-sun', // few clouds
+            '03': 'fas fa-cloud', // scattered clouds
+            '04': 'fas fa-cloud', // broken clouds
+            '09': 'fas fa-cloud-rain', // shower rain
+            '10': 'fas fa-cloud-sun-rain', // rain
+            '11': 'fas fa-bolt', // thunderstorm
+            '13': 'fas fa-snowflake', // snow
+            '50': 'fas fa-smog' // mist
+        };
+        
+        // Fungsi untuk mengambil data cuaca dari API
+        async function getWeatherData(city) {
+            // Tampilkan loading, sembunyikan card dan error
+            loading.style.display = 'block';
+            weatherCard.style.display = 'none';
+            errorDiv.style.display = 'none';
+            
+            try {
+                // Buat request ke API
+                const response = await fetch(`${BASE_URL}?q=${city}&appid=${API_KEY}&units=metric&lang=id`);
+                
+                // Cek jika response tidak OK
+                if (!response.ok) {
+                    throw new Error('Kota tidak ditemukan');
+                }
+                
+                // Parse data JSON
+                const data = await response.json();
+                
+                // Tampilkan data cuaca
+                displayWeatherData(data);
+                
+            } catch (error) {
+                // Tampilkan pesan error
+                showError(error.message);
+            } finally {
+                // Sembunyikan loading
+                loading.style.display = 'none';
+            }
+        }
+        
+        // Fungsi untuk menampilkan data cuaca
+        function displayWeatherData(data) {
+            // Ekstrak data dari response API
+            const city = data.name;
+            const country = data.sys.country;
+            const temp = Math.round(data.main.temp);
+            const feelsLike = Math.round(data.main.feels_like);
+            const humidity = data.main.humidity;
+            const windSpeed = Math.round(data.wind.speed * 3.6); // Convert m/s to km/h
+            const pressure = data.main.pressure;
+            const weatherDesc = data.weather[0].description;
+            const weatherId = data.weather[0].icon.substring(0, 2);
+            
+            // Update UI dengan data baru
+            document.getElementById('cityName').textContent = `${city}, ${country}`;
+            document.getElementById('temperature').textContent = `${temp}°C`;
+            document.getElementById('weatherDesc').textContent = weatherDesc;
+            document.getElementById('humidity').textContent = `${humidity}%`;
+            document.getElementById('windSpeed').textContent = `${windSpeed} km/h`;
+            document.getElementById('feelsLike').textContent = `${feelsLike}°C`;
+            document.getElementById('pressure').textContent = `${pressure} hPa`;
+            
+            // Update icon cuaca
+            const weatherIcon = document.getElementById('weatherIcon');
+            const iconClass = iconMap[weatherId] || 'fas fa-question';
+            weatherIcon.innerHTML = `<i class="${iconClass}"></i>`;
+            
+            // Tampilkan card cuaca
+            weatherCard.style.display = 'block';
+        }
+        
+        // Fungsi untuk menampilkan error
+        function showError(message) {
+            document.getElementById('errorText').textContent = message;
+            errorDiv.style.display = 'block';
+        }
+        
+        // Event listener untuk tombol search
+        searchBtn.addEventListener('click', () => {
+            const city = cityInput.value.trim();
+            if (city) {
+                getWeatherData(city);
+            }
+        });
+        
+        // Event listener untuk tekan Enter di input
+        cityInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const city = cityInput.value.trim();
+                if (city) {
+                    getWeatherData(city);
+                }
+            }
+        });
+        
+        // Event listener untuk contoh kota
+        exampleCities.forEach(button => {
+            button.addEventListener('click', () => {
+                const city = button.getAttribute('data-city');
+                cityInput.value = city;
+                getWeatherData(city);
+            });
+        });
+        
+        // Load data untuk kota default saat pertama kali
+        window.addEventListener('DOMContentLoaded', () => {
+            getWeatherData('Jakarta');
+        });
+    </script>
+</body>
+</html>
